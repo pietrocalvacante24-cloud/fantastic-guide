@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0b1220">
 <meta name="description" content="Calculadora para simular e comparar diferentes tipos de investimento.">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <title>Comparador de investimentos</title>
 <style>
 :root{
@@ -276,7 +276,7 @@ function simulate(which){
   const costAnnual=getVal(which+'Cost')/100;
   const grossM=Math.pow(Math.max(0,1+grossAnnual),1/12)-1;
   const netM=(Math.pow(Math.max(0,1+grossAnnual),1/12)*Math.pow(Math.max(0,1-costAnnual),1/12))-1;
-  let grossBalance=initial,netBalance=initial, tax=0;
+  let grossBalance=initial,netBalance=initial;
   const grossPath=[grossBalance],netPath=[netBalance];
   const lots=[{amount:initial,age:months}];
   for(let m=1;m<=months;m++){
@@ -304,8 +304,7 @@ function simulate(which){
   const fees=Math.max(0,grossBalance-netBalance);
   const profit=final-contributed;
   const realValue=final/Math.pow(1+inflationRate(which),years);
-  const path=netPath.map((v,i)=>Math.max(0,v-(i===0?0:0)));
-  return {which,type,contributed,grossGain,fees,tax:totalTax,profit,final,realValue,path,annual:grossAnnual,months};
+  return {which,type,contributed,grossGain,fees,tax:totalTax,profit,final,realValue,path:netPath,annual:grossAnnual,months};
 }
 function setText(id,value){$(id).textContent=value;}
 function update(){
@@ -350,7 +349,7 @@ function drawChart(a,b){
     ctx.beginPath();data.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));
     ctx.strokeStyle=color;ctx.lineWidth=2.6;ctx.stroke();
   }
-  ctx.textAlign='left';ctx.fillStyle='#7eb6ff';ctx.fillRect(pad.l, h-18, 14, 3);ctx.fillText('A',pad.l+20,h-14);
+  ctx.textAlign='left';ctx.fillStyle='#7eb6ff';ctx.fillRect(pad.l,h-18,14,3);ctx.fillText('A',pad.l+20,h-14);
   ctx.fillStyle='#9bd7bd';ctx.fillRect(pad.l+55,h-18,14,3);ctx.fillText('B',pad.l+75,h-14);
   ctx.fillStyle='#a7b5c8';ctx.textAlign='right';ctx.fillText('Prazo: '+(a.length-1)+' meses',w-pad.r,h-14);
 }
@@ -436,4 +435,4 @@ window.addEventListener('appinstalled', () => {
 });
 </script>
 </body>
-</html>
+</html
