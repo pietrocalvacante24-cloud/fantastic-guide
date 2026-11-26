@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="Calculadora para simular e comparar diferentes tipos de investimento.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>Comparador de investimentos</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0b1220;--panel:#121d2e;--panel2:#18263a;--line:#2a3b53;
+  --text:#edf3fb;--muted:#a7b5c8;--accent:#7eb6ff;--accent2:#9bd7bd;
+  --danger:#ffb4a9;--shadow:0 14px 34px #0003;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#172943 0,#0b1220 55%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:22px 14px 48px}
+main{max-width:1120px;margin:auto}
+h1{font-size:clamp(27px,5vw,38px);margin:0 0 7px;letter-spacing:-.6px}
+h2{font-size:19px;margin:0 0 15px}
+h3{font-size:17px;margin:0}
+p{line-height:1.55}
+.sub{color:var(--muted);margin:0 0 22px;max-width:850px}
+.panel,.scenario,.result{background:linear-gradient(160deg,var(--panel),#101a2a);border:1px solid var(--line);border-radius:18px;padding:19px;box-shadow:var(--shadow)}
+.panel{margin:15px 0}
+.global-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.scenarios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:15px 0}
+.scenario{min-width:0}
+.scenario-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.tag{font-size:12px;color:#cfe3ff;border:1px solid #385778;background:#1b3552;padding:5px 9px;border-radius:999px;white-space:nowrap}
+.field{min-width:0;margin:14px 0}
+label{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-weight:650;margin-bottom:7px}
+.value{color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;margin:7px 0}
+input[type=number],select{width:100%;background:var(--panel2);border:1px solid #3a506d;border-radius:10px;color:var(--text);padding:11px 12px;font:inherit}
+input[type=number]:focus,select:focus{outline:2px solid #6faeff;outline-offset:1px}
+.range-number{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:12px;align-items:center}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:15px}
+.result{padding:18px}
+.result h3{margin-bottom:12px}
+.big{font-size:clamp(25px,4vw,34px);font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:4px 0 14px}
+.metric{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.metric span{color:var(--muted)}
+.metric strong{text-align:right;font-variant-numeric:tabular-nums}
+.chart-wrap{margin-top:15px}
+canvas{display:block;width:100%;height:280px;background:#0d1726;border:1px solid var(--line);border-radius:13px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+button{background:#203a59;color:var(--text);border:1px solid #45678f;border-radius:10px;padding:11px 15px;font:inherit;font-weight:700;cursor:pointer}
+button:hover{background:#294a70}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+.warning{border-left:3px solid #d4a65d;padding:9px 12px;background:#2a251b;border-radius:7px;color:#ead9b8}
+.hidden{display:none!important}
+.footer{margin-top:18px}
+@media(max-width:760px){.global-grid{grid-template-columns:1fr}.scenarios,.results{grid-template-columns:1fr}.panel,.scenario,.result{padding:15px}}
+@media(max-width:420px){body{padding:14px 10px 32px}.range-number{grid-template-columns:minmax(0,1fr) 94px}.metric{font-size:13px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Comparador de investimentos</h1>
+  <p class="sub">Monte dois cenários, ajuste as premissas pelas barras ou pelos campos numéricos e compare a evolução estimada do patrimônio. Os valores são simulações, não previsões.</p>
+  <div class="actions" style="margin:0 0 16px">
+    <button id="installApp" type="button" class="hidden">Instalar aplicativo</button>
+    <span id="installStatus" class="note" aria-live="polite">Você pode adicionar este app à tela inicial pelo menu do navegador quando estiver hospedado.</span>
+  </div>
+
+  <section class="panel">
+    <h2>1. Aportes e prazo</h2>
+    <div class="global-grid">
+      <div class="field">
+        <label for="initialRange">Investimento inicial <span class="value" id="initialLabel">R$ 0,00</span></label>
+        <div class="range-number"><input id="initialRange" type="range" min="0" max="30000" step="100" value="0"><input id="initialNumber" type="number" min="0" max="30000" step="1" value="0" aria-label="Investimento inicial em reais"></div>
+        <div class="hint">De R$ 0 a R$ 30.000.</div>
+      </div>
+      <div class="field">
+        <label for="monthlyRange">Aporte mensal <span class="value" id="monthlyLabel">R$ 400,00</span></label>
+        <div class="range-number"><input id="monthlyRange" type="range" min="0" max="30000" step="100" value="400"><input id="monthlyNumber" type="number" min="0" max="30000" step="1" value="400" aria-label="Aporte mensal em reais"></div>
+        <div class="hint">De R$ 0 a R$ 30.000 por mês.</div>
+      </div>
+      <div class="field">
+        <label for="yearsRange">Prazo <span class="value" id="yearsLabel">5 anos</span></label>
+        <div class="range-number"><input id="yearsRange" type="range" min="1" max="40" step="1" value="5"><input id="yearsNumber" type="number" min="1" max="40" step="1" value="5" aria-label="Prazo em anos"></div>
+        <div class="hint">De 1 a 40 anos. Aportes mensais no fim de cada mês.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="scenarios">
+    <section class="scenario" id="scenarioA">
+      <div class="scenario-head"><h2>2. Cenário A</h2><span class="tag">Investimento A</span></div>
+      <div class="field">
+        <label for="typeA">Tipo de investimento</label>
+        <select id="typeA">
+          <option value="cdb">CDB / RDB (% do CDI)</option>
+          <option value="selic">Tesouro Selic (estimativa ligada ao CDI)</option>
+          <option value="ipca">Tesouro IPCA+ (IPCA + juro real)</option>
+          <option value="prefixado">Tesouro Prefixado / CDB Prefixado</option>
+          <option value="lci">LCI / LCA (% do CDI)</option>
+          <option value="poupanca">Poupança</option>
+          <option value="acoes">Ações</option>
+          <option value="etf">ETFs</option>
+          <option value="fii">Fundos imobiliários (FIIs)</option>
+          <option value="fundos">Fundos de investimento</option>
+          <option value="cripto">Criptoativos</option>
+          <option value="custom">Outro investimento (taxa personalizada)</option>
+        </select>
+      </div>
+      <div id="fieldsA"></div>
+    </section>
+
+    <section class="scenario" id="scenarioB">
+      <div class="scenario-head"><h2>3. Cenário B</h2><span class="tag">Investimento B</span></div>
+      <div class="field">
+        <label for="typeB">Tipo de investimento</label>
+        <select id="typeB">
+          <option value="ipca">Tesouro IPCA+ (IPCA + juro real)</option>
+          <option value="cdb">CDB / RDB (% do CDI)</option>
+          <option value="selic">Tesouro Selic (estimativa ligada ao CDI)</option>
+          <option value="prefixado">Tesouro Prefixado / CDB Prefixado</option>
+          <option value="lci">LCI / LCA (% do CDI)</option>
+          <option value="poupanca">Poupança</option>
+          <option value="acoes">Ações</option>
+          <option value="etf">ETFs</option>
+          <option value="fii">Fundos imobiliários (FIIs)</option>
+          <option value="fundos">Fundos de investimento</option>
+          <option value="cripto">Criptoativos</option>
+          <option value="custom">Outro investimento (taxa personalizada)</option>
+        </select>
+      </div>
+      <div id="fieldsB"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>4. Comparação dos resultados</h2>
+    <div class="results">
+      <div class="result">
+        <h3>Investimento A</h3>
+        <div class="big" id="finalA">—</div>
+        <div class="metric"><span>Total aportado</span><strong id="investedA">—</strong></div>
+        <div class="metric"><span>Rendimento bruto estimado</span><strong id="grossA">—</strong></div>
+        <div class="metric"><span>Custos estimados</span><strong id="costA">—</strong></div>
+        <div class="metric"><span>Imposto estimado</span><strong id="taxA">—</strong></div>
+        <div class="metric"><span>Ganho líquido</span><strong id="profitA">—</strong></div>
+        <div class="metric"><span>Valor final em poder de compra atual</span><strong id="realA">—</strong></div>
+      </div>
+      <div class="result">
+        <h3>Investimento B</h3>
+        <div class="big" id="finalB">—</div>
+        <div class="metric"><span>Total aportado</span><strong id="investedB">—</strong></div>
+        <div class="metric"><span>Rendimento bruto estimado</span><strong id="grossB">—</strong></div>
+        <div class="metric"><span>Custos estimados</span><strong id="costB">—</strong></div>
+        <div class="metric"><span>Imposto estimado</span><strong id="taxB">—</strong></div>
+        <div class="metric"><span>Ganho líquido</span><strong id="profitB">—</strong></div>
+        <div class="metric"><span>Valor final em poder de compra atual</span><strong id="realB">—</strong></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <h3 style="margin:0 0 10px">Evolução estimada do saldo</h3>
+      <canvas id="chart" width="1000" height="340" aria-label="Gráfico comparando a evolução dos dois investimentos"></canvas>
+      <p class="note" id="comparisonNote" aria-live="polite"></p>
+    </div>
+    <div class="actions">
+      <button id="reset" type="button">Restaurar simulação</button>
+      <button id="download" type="button">Baixar resumo em CSV</button>
+    </div>
+  </section>
+
+  <section class="panel footer">
+    <h2>Como a simulação funciona</h2>
+    <p class="note">A taxa anual é convertida em uma taxa mensal equivalente e os aportes são considerados no fim de cada mês. O investimento inicial começa a render desde o início. O valor em poder de compra atual desconta a inflação informada no cenário; para investimentos sem campo próprio de inflação, é usada a inflação geral do cenário.</p>
+    <p class="note">Na renda fixa tributável, o IR é aproximado por aporte, usando a tabela regressiva simplificada (22,5%, 20%, 17,5% ou 15%, conforme o prazo de cada aporte). LCI/LCA e poupança aparecem sem IR nesta estimativa. Para ações, ETFs, FIIs, fundos e criptoativos, a alíquota é editável e aplicada de forma simplificada sobre o ganho positivo.</p>
+    <p class="note warning">Limitações importantes: isto não é recomendação de investimento nem cálculo fiscal oficial. Ações, ETFs, FIIs, fundos e criptoativos podem ter retornos negativos; a taxa informada é apenas uma hipótese e não representa retorno esperado ou garantido. O modelo não reproduz dividendos, amortizações, come-cotas, isenções por volume de vendas, day trade, compensação de prejuízos, taxas de custódia específicas, IOF, marcação a mercado ou regras tributárias particulares de cada ativo. Tesouro IPCA+ e Prefixado podem apresentar oscilações no preço antes do vencimento. Confira as regras vigentes e os custos do produto antes de qualquer decisão; como menor de idade, decisões e abertura de conta devem ser tratadas com seu responsável legal.</p>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const money = n => (Number.isFinite(n)?n:0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:2});
+const pct = n => Number(n).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2})+'%';
+const configs = {
+  A:{type:'cdb',cdi:13.65,mult:100,ipca:4.5,real:6.5,nominal:10.5,tax:15,cost:0,inflation:4.5},
+  B:{type:'ipca',cdi:13.65,mult:90,ipca:4.5,real:6.5,nominal:10.5,tax:15,cost:0,inflation:4.5}
+};
+const names = {
+  cdb:'CDB / RDB',selic:'Tesouro Selic',ipca:'Tesouro IPCA+',prefixado:'Prefixado',
+  lci:'LCI / LCA',poupanca:'Poupança',acoes:'Ações',etf:'ETFs',fii:'FIIs',
+  fundos:'Fundos',cripto:'Criptoativos',custom:'Outro investimento'
+};
+function field(id,label,value,min,max,step,unit,help){
+  const val = Number(value);
+  return `<div class="field">
+    <label for="${id}Range">${label} <span class="value" id="${id}Label">${pct(val)}</span></label>
+    <div class="range-number">
+      <input id="${id}Range" type="range" min="${min}" max="${max}" step="${step}" value="${val}">
+      <input id="${id}Number" type="number" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${label}">
+    </div>
+    ${help?`<div class="hint">${help}</div>`:''}
+  </div>`;
+}
+function renderScenario(which){
+  const c=configs[which], type=c.type, root=$('fields'+which);
+  let html='';
+  if(['cdb','selic','lci'].includes(type)){
+    html += field(which+'Cdi','CDI anual de referência',c.cdi,0,30,.05,'','Taxa hipotética ajustável.');
+    html += field(which+'Mult','Percentual do CDI',c.mult,0,200,1,'','Ex.: 100% do CDI acompanha a taxa de referência.');
+    html += field(which+'Inflation','Inflação anual para poder de compra',c.inflation,0,20,.1,'','Usada para estimar o valor em dinheiro de hoje.');
+  }else if(type==='ipca'){
+    html += field(which+'Ipca','Inflação anual (IPCA)',c.ipca,0,20,.1,'','Estimativa de inflação.');
+    html += field(which+'Real','Juro real anual',c.real,0,20,.1,'','Taxa acima da inflação.');
+  }else if(type==='poupanca'){
+    html += field(which+'Nominal','Rentabilidade anual estimada',c.nominal,0,30,.1,'','Use uma hipótese anual para a simulação.');
+    html += field(which+'Inflation','Inflação anual para poder de compra',c.inflation,0,20,.1,'','Usada para calcular o valor real.');
+  }else{
+    html += field(which+'Nominal','Retorno anual hipotético',c.nominal,-50,100,.1,'','Pode ser negativo. Não é previsão nem garantia.');
+    html += field(which+'Inflation','Inflação anual para poder de compra',c.inflation,0,20,.1,'','Usada para calcular o valor real.');
+  }
+  if(['acoes','etf','fii','fundos','cripto','custom'].includes(type)){
+    html += field(which+'Tax','Imposto simplificado sobre ganho',c.tax,0,40,.5,'%','Alíquota editável; não representa todas as regras fiscais do ativo.');
+  }
+  html += field(which+'Cost','Custos / taxas anuais estimados',c.cost,0,10,.05,'%','Estimativa anual descontada da rentabilidade.');
+  root.innerHTML=html;
+  const ids = type==='ipca'?[which+'Ipca',which+'Real',which+'Cost']:
+    ['cdb','selic','lci'].includes(type)?[which+'Cdi',which+'Mult',which+'Inflation',which+'Cost']:
+    type==='poupanca'?[which+'Nominal',which+'Inflation',which+'Cost']:
+    [which+'Nominal',which+'Inflation',which+'Tax',which+'Cost'];
+  ids.forEach(id=>wirePair(id));
+  update();
+}
+function getVal(id){return Number($(id+'Number')?.value ?? 0);}
+function wirePair(id){
+  const r=$(id+'Range'), n=$(id+'Number');
+  if(!r||!n)return;
+  const sync=(source)=>{
+    let v=Number(source.value);
+    if(!Number.isFinite(v))v=0;
+    const min=Number(r.min),max=Number(r.max);
+    v=Math.max(min,Math.min(max,v));
+    r.value=v;n.value=v;
+    const label=$(id+'Label');
+    if(label)label.textContent=pct(v)+(id.endsWith('Mult')||id.endsWith('Tax')||id.endsWith('Cost')?'':'');
+    update();
+  };
+  r.addEventListener('input',()=>sync(r));
+  n.addEventListener('input',()=>sync(n));
+}
+function annualRate(which){
+  const c=configs[which],t=c.type;
+  if(['cdb','selic','lci'].includes(t))return (getVal(which+'Cdi')*getVal(which+'Mult')/100)/100;
+  if(t==='ipca')return (1+getVal(which+'Ipca')/100)*(1+getVal(which+'Real')/100)-1;
+  return getVal(which+'Nominal')/100;
+}
+function inflationRate(which){
+  const c=configs[which];
+  return c.type==='ipca'?getVal(which+'Ipca')/100:getVal(which+'Inflation')/100;
+}
+function taxRateForLot(months, type, which){
+  if(type==='lci'||type==='poupanca')return 0;
+  if(['cdb','selic','ipca','prefixado'].includes(type)){
+    const years=months/12;
+    return years<=.5?.225:years<=1?.20:years<=2?.175:.15;
+  }
+  return getVal(which+'Tax')/100;
+}
+function simulate(which){
+  const c=configs[which],type=c.type;
+  const initial=Math.max(0,Math.min(30000,Number($('initialNumber').value)||0));
+  const monthly=Math.max(0,Math.min(30000,Number($('monthlyNumber').value)||0));
+  const years=Math.max(1,Math.min(40,Number($('yearsNumber').value)||1));
+  const months=years*12,contributed=initial+monthly*months;
+  const grossAnnual=annualRate(which);
+  const costAnnual=getVal(which+'Cost')/100;
+  const grossM=Math.pow(Math.max(0,1+grossAnnual),1/12)-1;
+  const netM=(Math.pow(Math.max(0,1+grossAnnual),1/12)*Math.pow(Math.max(0,1-costAnnual),1/12))-1;
+  let grossBalance=initial,netBalance=initial, tax=0;
+  const grossPath=[grossBalance],netPath=[netBalance];
+  const lots=[{amount:initial,age:months}];
+  for(let m=1;m<=months;m++){
+    grossBalance*=1+grossM;
+    netBalance*=1+netM;
+    if(monthly>0){
+      grossBalance+=monthly;netBalance+=monthly;
+      lots.push({amount:monthly,age:months-m});
+    }
+    grossPath.push(grossBalance);netPath.push(netBalance);
+  }
+  let totalTax=0;
+  if(['acoes','etf','fii','fundos','cripto','custom'].includes(type)){
+    const gain=Math.max(0,netBalance-contributed);
+    totalTax=gain*getVal(which+'Tax')/100;
+  }else{
+    for(const lot of lots){
+      const lotValue=lot.amount*Math.pow(1+netM,lot.age);
+      const gain=Math.max(0,lotValue-lot.amount);
+      totalTax+=gain*taxRateForLot(lot.age,type,which);
+    }
+  }
+  const final=Math.max(0,netBalance-totalTax);
+  const grossGain=grossBalance-contributed;
+  const fees=Math.max(0,grossBalance-netBalance);
+  const profit=final-contributed;
+  const realValue=final/Math.pow(1+inflationRate(which),years);
+  const path=netPath.map((v,i)=>Math.max(0,v-(i===0?0:0)));
+  return {which,type,contributed,grossGain,fees,tax:totalTax,profit,final,realValue,path,annual:grossAnnual,months};
+}
+function setText(id,value){$(id).textContent=value;}
+function update(){
+  const initial=Math.max(0,Math.min(30000,Number($('initialNumber').value)||0));
+  const monthly=Math.max(0,Math.min(30000,Number($('monthlyNumber').value)||0));
+  const years=Math.max(1,Math.min(40,Number($('yearsNumber').value)||1));
+  setText('initialLabel',money(initial));setText('monthlyLabel',money(monthly));setText('yearsLabel',years+' '+(years===1?'ano':'anos'));
+  const a=simulate('A'),b=simulate('B');
+  for(const [r,s] of [[a,'A'],[b,'B']]){
+    setText('final'+s,money(r.final));
+    setText('invested'+s,money(r.contributed));
+    setText('gross'+s,money(r.grossGain));
+    setText('cost'+s,money(r.fees));
+    setText('tax'+s,money(r.tax));
+    setText('profit'+s,money(r.profit));
+    setText('real'+s,money(r.realValue));
+  }
+  const diff=Math.abs(a.final-b.final);
+  const leader=a.final===b.final?'Os dois cenários terminam com o mesmo valor estimado.':a.final>b.final?'A apresenta valor final estimado maior que B.':'B apresenta valor final estimado maior que A.';
+  setText('comparisonNote',`${leader} Diferença estimada: ${money(diff)}. Taxas anuais usadas: A ${pct(a.annual*100)}; B ${pct(b.annual*100)}. O resultado depende integralmente das premissas escolhidas.`);
+  drawChart(a.path,b.path);
+  window.lastResults={a,b,initial,monthly,years};
+}
+function drawChart(a,b){
+  const canvas=$('chart'),ctx=canvas.getContext('2d');
+  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  canvas.width=Math.max(300,Math.floor(rect.width*dpr));canvas.height=Math.floor(280*dpr);
+  ctx.scale(dpr,dpr);
+  const w=canvas.width/dpr,h=280,pad={l:68,r:18,t:20,b:36};
+  ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1726';ctx.fillRect(0,0,w,h);
+  const max=Math.max(1,...a,...b),plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b;
+  const x=i=>pad.l+(i/Math.max(1,a.length-1))*plotW;
+  const y=v=>pad.t+plotH-(v/max)*plotH;
+  ctx.font='11px system-ui';ctx.fillStyle='#a7b5c8';ctx.strokeStyle='#2a3b53';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const v=max*i/4,yy=y(v);
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(shortMoney(v),pad.l-8,yy+4);
+  }
+  drawLine(a,'#7eb6ff');drawLine(b,'#9bd7bd');
+  function drawLine(data,color){
+    ctx.beginPath();data.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));
+    ctx.strokeStyle=color;ctx.lineWidth=2.6;ctx.stroke();
+  }
+  ctx.textAlign='left';ctx.fillStyle='#7eb6ff';ctx.fillRect(pad.l, h-18, 14, 3);ctx.fillText('A',pad.l+20,h-14);
+  ctx.fillStyle='#9bd7bd';ctx.fillRect(pad.l+55,h-18,14,3);ctx.fillText('B',pad.l+75,h-14);
+  ctx.fillStyle='#a7b5c8';ctx.textAlign='right';ctx.fillText('Prazo: '+(a.length-1)+' meses',w-pad.r,h-14);
+}
+function shortMoney(v){
+  if(v>=1e6)return 'R$ '+(v/1e6).toFixed(1).replace('.',',')+' mi';
+  if(v>=1e3)return 'R$ '+(v/1e3).toFixed(0)+' mil';
+  return 'R$ '+v.toFixed(0);
+}
+function resetAll(){
+  $('initialRange').value=0;$('initialNumber').value=0;
+  $('monthlyRange').value=400;$('monthlyNumber').value=400;
+  $('yearsRange').value=5;$('yearsNumber').value=5;
+  configs.A={type:'cdb',cdi:13.65,mult:100,ipca:4.5,real:6.5,nominal:10.5,tax:15,cost:0,inflation:4.5};
+  configs.B={type:'ipca',cdi:13.65,mult:90,ipca:4.5,real:6.5,nominal:10.5,tax:15,cost:0,inflation:4.5};
+  $('typeA').value='cdb';$('typeB').value='ipca';
+  renderScenario('A');renderScenario('B');update();
+}
+function downloadCsv(){
+  const {a,b,initial,monthly,years}=window.lastResults;
+  const rows=[
+    ['Item','Cenário A','Cenário B'],
+    ['Tipo',names[a.type],names[b.type]],
+    ['Investimento inicial',initial,initial],
+    ['Aporte mensal',monthly,monthly],
+    ['Prazo em anos',years,years],
+    ['Taxa anual bruta',a.annual,b.annual],
+    ['Total aportado',a.contributed,b.contributed],
+    ['Rendimento bruto estimado',a.grossGain,b.grossGain],
+    ['Custos estimados',a.fees,b.fees],
+    ['Imposto estimado',a.tax,b.tax],
+    ['Ganho líquido',a.profit,b.profit],
+    ['Valor final',a.final,b.final],
+    ['Valor em poder de compra atual',a.realValue,b.realValue]
+  ];
+  const csv=rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='comparacao_investimentos.csv';link.click();URL.revokeObjectURL(url);
+}
+function wireGlobal(rangeId,numberId){
+  const r=$(rangeId),n=$(numberId);
+  const sync=src=>{
+    let v=Number(src.value);if(!Number.isFinite(v))v=0;
+    v=Math.max(Number(r.min),Math.min(Number(r.max),v));r.value=v;n.value=v;update();
+  };
+  r.addEventListener('input',()=>sync(r));n.addEventListener('input',()=>sync(n));
+}
+wireGlobal('initialRange','initialNumber');
+wireGlobal('monthlyRange','monthlyNumber');
+wireGlobal('yearsRange','yearsNumber');
+$('typeA').addEventListener('change',e=>{configs.A.type=e.target.value;renderScenario('A')});
+$('typeB').addEventListener('change',e=>{configs.B.type=e.target.value;renderScenario('B')});
+$('reset').addEventListener('click',resetAll);
+$('download').addEventListener('click',downloadCsv);
+window.addEventListener('resize',()=>{if(window.lastResults)drawChart(window.lastResults.a.path,window.lastResults.b.path)});
+renderScenario('A');renderScenario('B');update();
+
+// Progressive Web App: registra o cache offline e oferece instalação quando suportada.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {
+      $('installStatus').textContent = 'Modo offline indisponível neste navegador.';
+    });
+  });
+}
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  $('installApp').classList.remove('hidden');
+  $('installStatus').textContent = 'Este dispositivo permite instalar a calculadora.';
+});
+$('installApp').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $('installApp').classList.add('hidden');
+});
+window.addEventListener('appinstalled', () => {
+  $('installApp').classList.add('hidden');
+  $('installStatus').textContent = 'Aplicativo instalado.';
+});
+</script>
+</body>
+</html>

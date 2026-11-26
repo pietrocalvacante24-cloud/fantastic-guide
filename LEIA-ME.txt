@@ -1,0 +1,18 @@
+# Calculadora de Investimentos — app web instalável
+
+## O que vem neste pacote
+- `index.html`: calculadora comparativa.
+- `manifest.webmanifest`: identidade e configurações do app.
+- `service-worker.js`: cache para uso offline depois da primeira visita.
+- `icons/`: ícones para a tela inicial.
+
+## Como instalar no Android
+1. Publique **todo o conteúdo desta pasta** em um serviço de hospedagem estática com HTTPS.
+2. Abra o endereço publicado no Chrome do Android.
+3. Toque em **Instalar aplicativo**, se o botão aparecer; alternativamente, abra o menu do Chrome e escolha **Instalar app** ou **Adicionar à tela inicial**.
+4. Depois da primeira abertura online, a calculadora pode carregar offline, desde que o navegador mantenha o cache.
+
+Importante: por exigência de segurança dos navegadores, um PWA precisa ser servido por HTTPS (ou localhost para testes). Abrir o arquivo `index.html` diretamente pelo gerenciador de arquivos não instala o app. Este pacote não é um APK.
+
+## Observações sobre os cálculos
+As taxas e resultados são hipóteses editáveis. O cálculo tributário é simplificado e não substitui as regras específicas de cada produto nem orientação profissional. Ativos de renda variável podem perder valor.
